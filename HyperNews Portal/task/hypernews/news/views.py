@@ -18,7 +18,6 @@ def load_news():
     global news_JSON, news, headlines, active_links
     with open(NEWS_JSON_PATH, 'r') as f:
         news_JSON = json.load(f)
-        print(f"opened file {news_JSON}")
     # Convert all date strings into datetime objects, create list of links
     active_links = []
     news = deepcopy(news_JSON)
@@ -30,12 +29,11 @@ def load_news():
     # Reorder list of dicts from JSON file, grouped by Y-M-D date
     headlines = [{'date': date, 'values': list(news_dict)} for date, news_dict in
                  itertools.groupby(news, lambda x: time_strip(x['created']))]
-    print(f"returning news_JSON as {news_JSON}")
     return news_JSON, news, headlines, active_links
 
 
 news_JSON, news, headlines, active_links = load_news()
-print(id(news_JSON[0]["created"]), id(news[0]['created']))
+
 
 def assign_new_link(links_list):
     new_link = randint(1, 99999999)
@@ -52,7 +50,23 @@ class CreateNewsForm(forms.Form):
 
 class IndexView(View):
     def get(self, request, *args, **kwargs):
-        return render(request, 'news/index.html', context={"news": headlines})
+        search = request.GET.get('q')
+        # If a query parameter exists in the request, rebuild headlines filtering on
+        # case-insensitive str.find() function.  Otherwise
+        if search:
+            filtered_headlines = []
+            for news_date in headlines:
+
+                matches = []
+                for news_item in news_date['values']:
+                    if news_item['title'].lower().find(search.lower()) != -1:
+                        matches.append(news_item)
+                if len(matches) > 0:
+                    filtered_headlines.append({"date": news_date['date'], "values": matches})
+        else:
+            filtered_headlines = headlines
+
+        return render(request, 'news/index.html', context={"news": filtered_headlines})
 
 class NewsView(View):
     def get(self, request, news_link, *args, **kwargs):
@@ -77,7 +91,6 @@ class CreateNewsView(View):
     def post(self, request, *args, **kwargs):
         global news_JSON, news, headlines, active_links
         create_news_form = CreateNewsForm(request.POST)
-        print(create_news_form)
         if create_news_form.is_valid():
             data = create_news_form.cleaned_data
             news_dict = {
