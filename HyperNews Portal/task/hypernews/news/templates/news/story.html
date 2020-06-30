@@ -6,7 +6,8 @@
 </head>
 <body>
     <h2>{{ title }}</h2>
-    <p>{{ created }}</p>
+    <!-- DTL date/time filters closer to PHP formatting than Python datetime -->
+    <p>{{ created | date:"Y-m-d" }} {{ created | time:"H:i:s" }}</p>
     <p>{{ text }}</p>
 <a target="_blank" href="/news/">News Home</a>
 </body>
